@@ -71,3 +71,4 @@ crashlytics-build.properties
 wikipedia.dat
 stackoverflow.csv
 atussum.csv
+capstone/observatory/src/main/resources/*.csv
