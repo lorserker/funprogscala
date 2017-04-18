@@ -11,6 +11,17 @@ import observatory.Visualization._
 @RunWith(classOf[JUnitRunner])
 class VisualizationTest extends FunSuite with Checkers {
 
+  val colorScale = List(
+    (60.0, Color(255, 255, 255)),
+    (32.0, Color(255, 0, 0)),
+    (12.0, Color(255, 255, 0)),
+    (0.0, Color(0, 255, 255)),
+    (-15.0, Color(0, 0, 255)),
+    (-27.0, Color(255, 0, 255)),
+    (-50.0, Color(33, 0, 107)),
+    (-60.0, Color(0, 0, 0))
+  )
+
   test("circle distance") {
     val loc1 = Location(52.52, 13.405)
     val loc2 = Location(46.05695, 14.505751)
@@ -31,84 +42,97 @@ class VisualizationTest extends FunSuite with Checkers {
   }
 
   test("predict temperature") {
-    val temperatures = List(
-      (Location(0, 0), 80.0),
-      (Location(0, 45), 10.0),
-      (Location(0, 90), 90.0)
+    val smallSquare = List(
+      (Location(10, -10), 1.0),
+      (Location(-10, -10), 2.0),
+      (Location(-10, 10), 3.0),
+      (Location(10, 10), 4.0)
     )
-
-    println(predictTemperature(temperatures, Location(10, 45)))
-    println(predictTemperature(temperatures, Location(0, 0)))
-    println(predictTemperature(temperatures, Location(0.001, 0.001)))
+    val largeSquare = List(
+      (Location(50, -50), 1.0),
+      (Location(-50, -50), 2.0),
+      (Location(-50, 50), 3.0),
+      (Location(50, 50), 4.0)
+    )
+    val pSmall = predictTemperature(smallSquare, Location(0, 0))
+    val pLarge = predictTemperature(largeSquare, Location(0, 0))
+    assert(math.abs(pSmall - pLarge) < 1e-6)
+    assert(math.abs(pSmall - 2.5) < 1e-6)
+    assert(math.abs(predictTemperature(smallSquare, Location(10, -10)) - 1.0) < 1e-6)
+    assert(math.abs(predictTemperature(smallSquare, Location(10.001, -10.001)) - 1.0) < 1e-6)
   }
 
   test("color interpolation") {
-    val points = List(
-      (60.0, Color(255, 255, 255)),
-      (32.0, Color(255, 0, 0)),
-      (12.0, Color(255, 255, 0)),
-      (0.0, Color(0, 255, 255)),
-      (-15.0, Color(0, 0, 255)),
-      (-27.0, Color(255, 0, 255)),
-      (-50.0, Color(33, 0, 107)),
-      (-60.0, Color(0, 0, 0))
+    val temperatures = List(70, 60, 50, 40, 32, 30, 20, 12, 5, 0, -10, -15, -20, -27, -35, -45, -50, -55, -60, -70)
+    val expected = List(
+      Color(255,255,255),
+      Color(255,255,255),
+      Color(255,164,164),
+      Color(255,73,73),
+      Color(255,0,0),
+      Color(255,26,0),
+      Color(255,153,0),
+      Color(255,255,0),
+      Color(106,255,149),
+      Color(0,255,255),
+      Color(0,85,255),
+      Color(0,0,255),
+      Color(106,0,255),
+      Color(255,0,255),
+      Color(178,0,204),
+      Color(81,0,139),
+      Color(33,0,107),
+      Color(17,0,54),
+      Color(0,0,0),
+      Color(0,0,0)
     )
-
-    println((70, interpolateColor(points, 70)))
-    println((60, interpolateColor(points, 60)))
-    println((50, interpolateColor(points, 50)))
-    println((40, interpolateColor(points, 40)))
-    println((32, interpolateColor(points, 32)))
-    println((30, interpolateColor(points, 30)))
-    println((20, interpolateColor(points, 20)))
-    println((12, interpolateColor(points, 12)))
-    println((5, interpolateColor(points, 5)))
-    println((0, interpolateColor(points, 0)))
-    println((-10, interpolateColor(points, -10)))
-    println((-15, interpolateColor(points, -15)))
-    println((-20, interpolateColor(points, -20)))
-    println((-27, interpolateColor(points, -27)))
-    println((-35, interpolateColor(points, -35)))
-    println((-45, interpolateColor(points, -45)))
-    println((-50, interpolateColor(points, -50)))
-    println((-55, interpolateColor(points, -55)))
-    println((-60, interpolateColor(points, -60)))
-    println((-70, interpolateColor(points, -70)))
+    val got = temperatures.map(interpolateColor(colorScale, _))
+    for ((expectedColor, gotColor) <- expected zip got) {
+      assert(expectedColor == gotColor)
+    }
   }
 
   test("lat lon to image coordinates") {
-    val latLon = List[(Double, Double)](
-      (90, -180),
-      (90, 180),
-      (-90, -180),
-      (-90, 180),
-      (0, 0)
+    val locations = List[Location](
+      Location(90, -180),
+      Location(90, 180),
+      Location(-90, -180),
+      Location(-90, 180),
+      Location(0, 0)
     )
-    for ((lat, lon) <- latLon) {
-      println(locationToXY(Location(lat, lon)))
+    val expected = List[(Int, Int)](
+      (0,0),
+      (360,0),
+      (0,180),
+      (360,180),
+      (180,90)
+    )
+    val got = locations.map(locationToXY)
+    for ((expectedXY, gotXY) <- expected zip got) {
+      assert(expectedXY == gotXY)
     }
   }
 
-  test("visualization end to end") {
-    val avgTemperatures = Extraction.locationYearlyAverageRecords(Extraction.locateTemperatures(2000, "/stations.csv", "/2000.csv"))
-    println(s"len avg temps ${avgTemperatures.size}")
-    val colorScale = List(
-      (60.0, Color(255, 255, 255)),
-      (32.0, Color(255, 0, 0)),
-      (12.0, Color(255, 255, 0)),
-      (0.0, Color(0, 255, 255)),
-      (-15.0, Color(0, 0, 255)),
-      (-27.0, Color(255, 0, 255)),
-      (-50.0, Color(33, 0, 107)),
-      (-60.0, Color(0, 0, 0))
-    )
-    val locTemperatures = for (x <- 0 until 360; y <- 0 until 180) yield {
-      val loc = Location(90 - y, x - 180)
-      val t = predictTemperature(avgTemperatures, loc)
-      (loc, t)
-    }
-    println("creating image")
-    val img = visualize(locTemperatures, colorScale)
-    img.output("target/lala.png")
-  }
+//  test("visualization end to end") {
+//    val avgTemperatures = Extraction.locationYearlyAverageRecords(Extraction.locateTemperatures(2015, "/stations.csv", "/2015.csv"))
+//    println(s"len avg temps ${avgTemperatures.size}")
+//    val colorScale = List(
+//      (60.0, Color(255, 255, 255)),
+//      (32.0, Color(255, 0, 0)),
+//      (12.0, Color(255, 255, 0)),
+//      (0.0, Color(0, 255, 255)),
+//      (-15.0, Color(0, 0, 255)),
+//      (-27.0, Color(255, 0, 255)),
+//      (-50.0, Color(33, 0, 107)),
+//      (-60.0, Color(0, 0, 0))
+//    )
+//    val locTemperatures = for (x <- 0 until 360; y <- 0 until 180) yield {
+//      val loc = Location(90 - y, x - 180)
+//      val t = predictTemperature(avgTemperatures, loc)
+//      (loc, t)
+//    }
+//    println("creating image")
+//    val img = visualize(locTemperatures, colorScale)
+//    img.output("target/lala2.png")
+//  }
 }

@@ -86,7 +86,7 @@ object Visualization {
     */
   def visualize(temperatures: Iterable[(Location, Double)], colors: Iterable[(Double, Color)]): Image = {
     val pixels = new Array[Pixel](360 * 180)
-    for (i <- 0 until pixels.length) {
+    for (i <- pixels.indices) {
       pixels(i) = Pixel(0, 0, 0, 255)
     }
     println(pixels.length)
